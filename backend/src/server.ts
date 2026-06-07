@@ -17,12 +17,6 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// logger (TEMP for debugging)
-app.use((req, _res, next) => {
-  console.log("REQUEST:", req.method, req.url);
-  next();
-});
-
 app.use("/api/issues", issueRoutes);
 app.use("/api/discussions", discussionRoutes);
 app.use("/api/ai", aiRoutes);

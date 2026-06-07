@@ -1,175 +1,219 @@
-# Minimal Issue Management Platform
+# Issue-Tracker Minimal Issue Management Platform
 
-A full-stack issue management system to create issues, manage discussions, and generate AI-based analysis using Gemini.
+Full-stack issue tracker built for reporting, tracking, and resolving school or facility-related issues. Report school/facility issues, discuss them, update status, and get AI analysis from Gemini.
 
+---
+
+## Live Deployment
+
+| | URL |
+|---|-----|
+| **Live application** | https://issue-tracker-six-sandy.vercel.app |
+| **Frontend** (Vercel) | https://issue-tracker-six-sandy.vercel.app |
+| **Backend API** (Render) | https://issue-tracker-ru6o.onrender.com/api |
+
+---
+
+## What it does
+
+Users pick a profile from a switcher (no real auth), create issues, filter them on a dashboard, and open a detail page to post comments, change status, or run AI analysis. The AI reads the issue plus discussion history and returns a summary, severity, fix steps, and justification. Results are cached in the database.
+
+---
 
 ## Features
 
-- Create and manage issues
-- View issue list and issue details
-- Add discussions per issue
-- Update issue status
-- Generate AI analysis (Gemini) based on issue + discussion history
-- User switching system (no authentication, simulated users from database)
+- Landing page, dashboard, create issue form, and issue detail view
+- Search and filter by status, priority, and category (client-side on the dashboard)
+- Discussions on each issue, tied to the active user
+- Status updates: `open` → `in_progress` → `resolved`
+- AI analysis via Gemini (`gemini-2.5-flash`), cached in Postgres
+- User switcher with roles: `student`, `maintenance_admin`, `school_office`
+- Responsive layout (Tailwind)
+- Zod validation on the backend; typed API client on the frontend
 
+**Not built:** login/auth
 
-## Tech Stack
+---
 
-**Frontend**
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
+## Tech stack
 
-**Backend**
-- Node.js (Express)
-- TypeScript
-- Drizzle ORM
+**Frontend:** Next.js 16 (App Router), React, TypeScript, Tailwind CSS  
+**Backend:** Node.js, Express, TypeScript, Zod  
+**Database:** PostgreSQL, Drizzle ORM  
+**AI:** Google Gemini API  
+**Hosting:** Vercel (frontend), Render (API + Postgres)
 
-**Database**
-- PostgreSQL
+---
 
-**AI**
-- Google Gemini API
+## Project structure
 
+```
+backend/
+├── drizzle/              # migrations
+└── src/
+    ├── server.ts
+    ├── db/               # schema, pool, seed
+    └── modules/
+        ├── issues/       # routes → controllers → services → validators
+        ├── discussions/
+        ├── users/
+        └── ai/
 
+frontend/src/
+├── app/                  # pages (landing + (app) routes)
+├── components/
+├── contexts/             # ActiveUserContext
+├── hooks/                # useAiAnalysis
+├── lib/                  # formatters
+├── services/api.ts       # all HTTP calls
+└── types/
+```
 
-## Architecture Overview
+Server Components load issues on the dashboard and detail pages. Client components handle forms, discussions, status changes, and the AI panel. Everything goes through one `api.ts` file.
 
-- Frontend communicates with backend via REST APIs
-- Server Components fetch issues and details
-- Client Components handle interactions (forms, discussions, AI generation)
-- Users are fetched from database and selected via UI switcher
-- AI analysis is generated on demand and cached in database
+---
 
+## Database
 
+| Table | What it stores |
+|-------|----------------|
+| `users` | Demo accounts (name, role) |
+| `issues` | Title, description, category, status, priority, creator |
+| `discussions` | Comments on an issue |
+| `ai_analyses` | Cached Gemini output per issue |
 
-## API Endpoints
+```
+users → issues → discussions
+              → ai_analyses
+```
 
-### Issues
-- POST /api/issues → create issue
-- GET /api/issues → list issues
-- GET /api/issues/:id → issue details
-- PATCH /api/issues/:id/status → update status
+`npm run seed` adds 6 demo users. Issues and discussions are created through the app.
 
-### Discussions
-- POST /api/discussions → add comment
-- GET /api/discussions/issue/:issueId → list discussions
+---
 
-### Users
-- GET /api/users → list users
+## API
 
-### AI
-- POST /api/ai/analyze/:issueId → generate or fetch cached analysis
+Base: `http://localhost:3001/api` (local) · `https://issue-tracker-ru6o.onrender.com/api` (prod)
 
+Responses: `{ success, message, data }`
 
-## Setup Instructions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/issues` | Create issue |
+| GET | `/api/issues` | List issues (`?status`, `?priority`, `?category`) |
+| GET | `/api/issues/:id` | Issue + creator |
+| PATCH | `/api/issues/:id/status` | Update status |
+| POST | `/api/discussions` | Add comment |
+| GET | `/api/discussions/issue/:issueId` | List comments |
+| GET | `/api/users` | List users |
+| POST | `/api/ai/analyze/:issueId` | Generate or return cached AI analysis |
 
-### 1. Install dependencies
+---
+
+## Local setup
+
+**Requirements:** Node 20+, PostgreSQL, Gemini API key
 
 ```bash
-cd backend
-npm install
+git clone https://github.com/muhammed-sinan-200/Issue-Tracker.git
+cd issue-tracker
 
-cd ../frontend
-npm install
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
-### 2. Environment variables
-
-**Backend** (`backend/.env`):
+**Backend** — create `backend/.env`:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/issue_management
 PORT=3001
-GEMINI_API_KEY=your_gemini_api_key
+DATABASE_URL=postgresql://user:password@localhost:5432/issue_management
+GEMINI_API_KEY=gemini_api_key
 ```
 
-**Frontend** (`frontend/.env.local`):
+**Frontend** — create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
-### 3. Run migrations and seed
+**Database:**
 
 ```bash
 cd backend
 npx drizzle-kit migrate
-npm run seed
+npm run seed          # once per fresh DB
 ```
 
-Re-run `npm run seed` after any database reset.
-
-### 4. Start servers
+**Run:**
 
 ```bash
-# Backend (port 3001)
-cd backend && npm run dev
-
-# Frontend (port 3000)
-cd frontend && npm run dev
+cd backend && npm run dev    # :3001
+cd frontend && npm run dev   # :3000
 ```
 
-### 5. Render deployment (backend)
+For hosted Postgres (e.g. Render external URL), add `?sslmode=require` to `DATABASE_URL`.
 
-Render sets `NODE_ENV=production`, so a plain `npm install` skips `devDependencies`. TypeScript and `@types/*` are in `devDependencies` and are required to compile.
+Copy `backend/.env.example` → `backend/.env` and `frontend/.env.example` → `frontend/.env.local`, then fill in your values.
 
-**Render build command:**
+---
 
-```bash
-npm run deploy:build
+## Required Environment Variables
+
+**Backend** (`backend/.env`) — see `backend/.env.example`
+
+```env
+PORT=3001
+DATABASE_URL=postgresql://user:password@localhost:5432/issue_management
+GEMINI_API_KEY=your_gemini_api_key
+CORS_ORIGIN=http://localhost:3000
 ```
 
-**Render start command:**
+**Frontend** (`frontend/.env.local`) — see `frontend/.env.example`
 
-```bash
-npm start
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
-`deploy:build` installs dev dependencies, runs `tsc`, then prunes dev packages so production `node_modules` stays lean.
+| Variable | Where | Required |
+|----------|-------|----------|
+| `DATABASE_URL` | Backend | Yes |
+| `GEMINI_API_KEY` | Backend | Yes (for AI) |
+| `NEXT_PUBLIC_API_URL` | Frontend | Yes |
+| `PORT` | Backend | No (default `3001`) |
+| `CORS_ORIGIN` | Backend | No |
 
-## Seed Data
+Production frontend example:
 
-| Data | Source |
-|------|--------|
-| Users (6 demo accounts) | `npm run seed` |
-| Issues | Created via UI |
-| Discussions | Posted on issue detail pages |
-| AI analyses | Generated on demand |
-
-## Data Fetching & Caching
-
-| Layer | Caching behavior |
-|-------|------------------|
-| **Frontend GET requests** | `cache: "no-store"` on all reads — always fresh data from API |
-| **Frontend mutations** | POST/PATCH never cached |
-| **Next.js Router** | `router.refresh()` revalidates Server Components after issue creation |
-| **Client state** | No SWR/React Query; local React state only |
-| **Backend AI** | Analysis cached in `ai_analyses` table (DB persistence, not HTTP cache) |
-| **Backend API responses** | No HTTP cache headers; stateless per request |
-
-All frontend HTTP calls use native `fetch` via a single module (`frontend/src/services/api.ts`). Axios is not used.
-
-## Known Limitations
-
-- No authentication — user identity is client-selected via switcher
-- AI analysis is cached in DB and not invalidated when discussions change
-- AI panel does not auto-load cached analysis on page visit (manual trigger only)
-- Discussions API returns 404 for empty threads — frontend normalizes to `[]`
-- `imageUrl` is supported by API but not exposed in the create-issue form
-
-## Project Structure
-
+```env
+NEXT_PUBLIC_API_URL=https://your-api.onrender.com/api
 ```
-Issue_management_platform/
-├── backend/src/modules/   # issues, discussions, users, ai
-├── backend/drizzle/       # SQL migrations
-└── frontend/src/
-    ├── app/               # Next.js pages
-    ├── components/        # UI components
-    ├── contexts/          # Active user context
-    ├── hooks/             # useAiAnalysis
-    ├── lib/               # formatters, user helpers
-    ├── services/api.ts    # Single HTTP client (fetch)
-    └── types/             # TypeScript types
-```
+
+---
+
+## Engineering Decisions
+
+- **Next.js App Router** — server-side data fetching for dashboard/detail pages; client components for forms and interactions
+- **PostgreSQL + Drizzle** — relational schema with enums and FKs; SQL-first migrations
+- **Modular Express backend** — routes, controllers, services, and validators per domain (`issues`, `discussions`, `users`, `ai`)
+- **Single `api.ts` client** — one place for all frontend HTTP calls and error handling
+- **No auth** — user switcher over seeded users keeps the challenge scope focused on core workflows
+
+---
+
+## Deployment
+
+**Vercel** (root: `frontend`)
+
+- Build: `npm run build`
+- Env: `NEXT_PUBLIC_API_URL=https://issue-tracker-ru6o.onrender.com/api`
+- Redeploy after env changes
+
+**Render** (root: `backend`)
+
+- Build: `npm run deploy:build`
+- Start: `npm start`
+- Env: `DATABASE_URL` (internal URL), `GEMINI_API_KEY`, `NODE_ENV=production`
+
+Run migrations and seed against the external DB URL from your machine before pointing the app at it.
+
+---

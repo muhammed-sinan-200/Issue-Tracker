@@ -5,7 +5,6 @@ import type {
   IssueStatus,
 } from "@/types/issue";
 
-/** Backend `issue_category` enum values (Drizzle schema) */
 export const ISSUE_CATEGORIES = [
   "electrical",
   "water",
@@ -15,10 +14,8 @@ export const ISSUE_CATEGORIES = [
   "other",
 ] as const satisfies readonly IssueCategory[];
 
-/** Backend `issue_priority` enum values */
 export const ISSUE_PRIORITIES = ["low", "medium", "high"] as const satisfies readonly IssuePriority[];
 
-/** Backend `issue_status` enum values */
 export const ISSUE_STATUSES = ["open", "in_progress", "resolved"] as const satisfies readonly IssueStatus[];
 
 const CATEGORY_LABELS: Record<IssueCategory, string> = {

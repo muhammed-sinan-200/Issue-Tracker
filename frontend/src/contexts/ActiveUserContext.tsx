@@ -65,15 +65,14 @@ export function ActiveUserProvider({
           return;
         }
 
+        const message =
+          err instanceof Error ? err.message : "Failed to load users from server";
+
         setUsers([]);
         setActiveUserIdState(null);
-        setError(
-          err instanceof Error ? err.message : "Failed to load users from server",
-        );
+        setError(message);
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     }
 

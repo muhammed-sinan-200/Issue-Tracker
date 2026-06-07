@@ -8,10 +8,18 @@ import type {
 } from "@/types/issue";
 import type { User } from "@/types/user";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_REQUEST_TIMEOUT_MS = 30_000;
 
-if (!API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is missing");
+function getApiUrl(): string {
+  const url = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "");
+
+  if (!url) {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL is missing. Set it in Vercel to your Render URL ending with /api",
+    );
+  }
+
+  return url;
 }
 
 const READ_FETCH_OPTIONS: RequestInit = { cache: "no-store" };
@@ -79,15 +87,33 @@ async function parseResponse<T>(response: Response, path: string): Promise<T> {
 
 async function fetchApi(path: string, options: RequestInit = {}): Promise<Response> {
   const method = options.method?.toUpperCase() ?? "GET";
+  const apiUrl = getApiUrl();
+  const url = `${apiUrl}${path}`;
+  const timeoutSignal = AbortSignal.timeout(API_REQUEST_TIMEOUT_MS);
 
-  return fetch(`${API_URL}${path}`, {
-    ...(method === "GET" ? READ_FETCH_OPTIONS : {}),
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  const headers = new Headers(options.headers);
+
+  if (method !== "GET" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  try {
+    return await fetch(url, {
+      ...(method === "GET" ? READ_FETCH_OPTIONS : {}),
+      ...options,
+      signal: options.signal ?? timeoutSignal,
+      headers,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      throw new ApiError(
+        `Request timed out after ${API_REQUEST_TIMEOUT_MS / 1000}s (${method} ${path})`,
+        408,
+      );
+    }
+
+    throw error;
+  }
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
