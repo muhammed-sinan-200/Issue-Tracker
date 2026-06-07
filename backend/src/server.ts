@@ -6,7 +6,9 @@ import discussionRoutes from "./modules/discussions/routes/discussion.route";
 import issueRoutes from "./modules/issues/routes/issue.route";
 import userRoutes from "./modules/users/routes/user.route";
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;

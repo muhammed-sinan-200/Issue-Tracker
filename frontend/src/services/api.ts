@@ -8,14 +8,12 @@ import type {
 } from "@/types/issue";
 import type { User } from "@/types/user";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-/**
- * All GET requests use `cache: "no-store"` so Next.js Server Components
- * always fetch fresh data. Mutations (POST/PATCH) are never cached.
- * There is no client-side response cache (no SWR/React Query).
- */
+if (!API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is missing");
+}
+
 const READ_FETCH_OPTIONS: RequestInit = { cache: "no-store" };
 
 type ApiSuccessResponse<T> = {
