@@ -25,6 +25,7 @@ export async function analyzeIssue(req: Request, res: Response) {
     });
   } catch (error) {
     console.error("[AI] Analysis request failed:", error);
+
     if (error instanceof ZodError) {
       return res.status(400).json({
         success: false,
@@ -33,9 +34,18 @@ export async function analyzeIssue(req: Request, res: Response) {
       });
     }
 
-    return res.status(500).json({
+    const message =
+      error instanceof Error ? error.message : "Something went wrong";
+
+    const status = message.includes("GEMINI_API_KEY")
+      ? 503
+      : message.includes("Gemini API error")
+        ? 502
+        : 500;
+
+    return res.status(status).json({
       success: false,
-      message: "Something went wrong",
+      message,
     });
   }
 }

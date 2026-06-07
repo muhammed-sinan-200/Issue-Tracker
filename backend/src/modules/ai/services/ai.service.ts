@@ -137,26 +137,42 @@ async function callGeminiAPI(prompt: string) {
 
   if (!response.ok) {
     const errorText = await response.text();
+    let geminiMessage = response.statusText;
+
+    try {
+      const parsed = JSON.parse(errorText) as {
+        error?: { message?: string };
+      };
+      geminiMessage = parsed.error?.message ?? geminiMessage;
+    } catch {
+      geminiMessage = errorText || geminiMessage;
+    }
+
     console.error(
       "[Gemini] Request failed:",
       response.status,
-      response.statusText,
-      errorText
+      geminiMessage,
     );
-    throw new Error("Gemini API request failed");
+    throw new Error(`Gemini API error (${response.status}): ${geminiMessage}`);
   }
 
   const data = (await response.json()) as {
     candidates?: Array<{
       content?: {
-        parts?: Array<{ text?: string }>;
+        parts?: Array<{ text?: string; thought?: boolean }>;
       };
     }>;
   };
 
-  const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  const textParts = parts
+    .filter((part) => typeof part.text === "string" && part.text.trim().length > 0)
+    .map((part) => part.text!.trim());
+
+  const analysis = textParts[textParts.length - 1];
 
   if (!analysis) {
+    console.error("[Gemini] Empty response parts:", JSON.stringify(data));
     throw new Error("No analysis returned from Gemini");
   }
 
