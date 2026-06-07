@@ -4,7 +4,7 @@ import * as userService from "../services/user.service";
 export async function getAllUsers(_req: Request, res: Response) {
   try {
     const users = await userService.getAllUsers();
-
+    console.log("GET USERS HIT");
     return res.status(200).json({
       success: true,
       message: "Users fetched successfully",
