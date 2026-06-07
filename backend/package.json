@@ -5,8 +5,12 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
+    "deploy:build": "npm install --include=dev && npm run build && npm prune --omit=dev",
     "start": "node dist/server.js",
     "seed": "ts-node-dev --transpile-only src/db/seed.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "keywords": [],
   "author": "",

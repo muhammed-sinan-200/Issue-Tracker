@@ -110,6 +110,24 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
+### 5. Render deployment (backend)
+
+Render sets `NODE_ENV=production`, so a plain `npm install` skips `devDependencies`. TypeScript and `@types/*` are in `devDependencies` and are required to compile.
+
+**Render build command:**
+
+```bash
+npm run deploy:build
+```
+
+**Render start command:**
+
+```bash
+npm start
+```
+
+`deploy:build` installs dev dependencies, runs `tsc`, then prunes dev packages so production `node_modules` stays lean.
+
 ## Seed Data
 
 | Data | Source |
