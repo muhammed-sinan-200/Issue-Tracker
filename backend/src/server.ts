@@ -11,7 +11,12 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+// const PORT = process.env.PORT || 3001;
+
+const PORT = process.env.PORT;
+if (!PORT) {
+  throw new Error("PORT is not defined by environment (Render)");
+}
 
 app.use(cors());
 app.use(express.json());
